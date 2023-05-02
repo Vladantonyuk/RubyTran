@@ -1,0 +1,135 @@
+const chai = require('chai');
+const expect = chai.expect;
+const axios = require('axios');
+
+describe('Scratchpay API', function() {
+  let token;
+  
+  before(async function() {
+    const response = await axios.get('https://qa-challenge-api.scratchpay.com/api/auth', {
+      params: {
+        email: 'gianna@hightable.test',
+        password: 'thedantonio1'
+      }
+    });
+    token = response.data.token;
+  });
+  
+  describe('GET /api/clinics/2/emails', function() {
+    it('should return a 401 Unauthorized error', async function() {
+      try {
+        await axios.get('https://qa-challenge-api.scratchpay.com/api/clinics/2/emails');
+      } catch (error) {
+        expect(error.response.status).to.equal(401);
+        expect(error.response.data).to.deep.equal({ message: 'Unauthorized' });
+      }
+    });
+  });
+  
+  describe('GET /api/clinics', function() {
+    it('should return a list of clinics matching the search term', async function() {
+      const response = await axios.get('https://qa-challenge-api.scratchpay.com/api/clinics', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        params: {
+          term: 'veterinary'
+        }
+      });
+      expect(response.status).to.equal(200);
+      expect(response.data.length).to.be.above(0);
+    });
+  });
+});
+const chai = require('chai');
+const expect = chai.expect;
+const axios = require('axios');
+
+describe('Scratchpay API', function() {
+  let token;
+  
+  before(async function() {
+    const response = await axios.get('https://qa-challenge-api.scratchpay.com/api/auth', {
+      params: {
+        email: 'gianna@hightable.test',
+        password: 'thedantonio1'
+      }
+    });
+    token = response.data.token;
+  });
+  
+  describe('GET /api/clinics/2/emails', function() {
+    it('should return a 401 Unauthorized error', async function() {
+      try {
+        await axios.get('https://qa-challenge-api.scratchpay.com/api/clinics/2/emails');
+      } catch (error) {
+        expect(error.response.status).to.equal(401);
+        expect(error.response.data).to.deep.equal({ message: 'Unauthorized' });
+      }
+    });
+  });
+  
+  describe('GET /api/clinics', function() {
+    it('should return a list of clinics matching the search term', async function() {
+      const response = await axios.get('https://qa-challenge-api.scratchpay.com/api/clinics', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        params: {
+          term: 'veterinary'
+        }
+      });
+      expect(response.status).to.equal(200);
+      expect(response.data.length).to.be.above(0);
+    });
+    
+    it('should return a 401 Unauthorized error if no token is provided', async function() {
+      try {
+        await axios.get('https://qa-challenge-api.scratchpay.com/api/clinics', {
+          params: {
+            term: 'veterinary'
+          }
+        });
+      } catch (error) {
+        expect(error.response.status).to.equal(401);
+        expect(error.response.data).to.deep.equal({ message: 'Unauthorized' });
+      }
+    });
+    
+    it('should return a 400 Bad Request error if an invalid search term is provided', async function() {
+      try {
+        await axios.get('https://qa-challenge-api.scratchpay.com/api/clinics', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          params: {
+            term: ''
+          }
+        });
+      } catch (error) {
+        expect(error.response.status).to.equal(400);
+        expect(error.response.data).to.deep.equal({ message: 'Invalid search term' });
+      }
+    });
+  });
+  
+  describe('POST /api/applications', function() {
+    it('should create a new loan application', async function() {
+      const response = await axios.post('https://qa-challenge-api.scratchpay.com/api/applications', {
+        clinicId: 2,
+        patientId: '123456',
+        amount: 1000,
+        downPayment: 100,
+        paymentFrequency: 'WEEKLY',
+        approvalCode: 'ABC123'
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      expect(response.status).to.equal(201);
+      expect(response.data).to.have.property('id');
+      expect(response.data).to.have.property('clinicId', 2);
+      expect(response.data).to.have.property('patientId', '123456');
+      expect(response.data).to.have.property('amount', 1000);
+    })
