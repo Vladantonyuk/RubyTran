@@ -1,1 +1,138 @@
+const assert = require('assert');
+const { DateTime } = require('luxon');
+const dates = require('../lib/dates');
 
+describe('Business Dates API', function () {
+
+  describe('isBusinessDay()', function () {
+    it('should return true for a business day', function () {
+      assert.equal(dates.isBusinessDay('2023-04-26', 'US'), true);
+    });
+    it('should return false for a weekend day', function () {
+      assert.equal(dates.isBusinessDay('2023-04-30', 'US'), false);
+    });
+    it('should return false for a holiday', function () {
+      assert.equal(dates.isBusinessDay('2023-12-25', 'US'), false);
+    });
+  });
+
+  describe('getSettlementDate()', function () {
+    it('should return the correct settlement date for a delay of 2 business days', function () {
+      const req = { query: { initialDate: '2023-04-26', delay: '2', country: 'US' } };
+      const expectedBusinessDate = DateTime.fromISO('2023-04-28').toUTC().toISO({ suppressMilliseconds: true });
+      const res = {
+        json: function (result) {
+          assert.deepEqual(result.results.businessDate, expectedBusinessDate);
+        }
+      };
+      dates.getSettlementDate(req, res);
+    });
+    it('should return the correct number of weekend days, holiday days, and total days', function () {
+      const req = { query: { initialDate: '2023-04-26', delay: '4', country: 'US' } };
+      const res = {
+        json: function (result) {
+          assert.deepEqual(result.results.holidayDays, 1);
+          assert.deepEqual(result.results.weekendDays, 2);
+          assert.deepEqual(result.results.totalDays, 7);
+        }
+      };
+      dates.getSettlementDate(req, res);
+    });
+  });
+
+});
+describe('businessDates API', () => {
+    describe('isBusinessDay', () => {
+      it('returns true for a business day', () => {
+        const req = {
+          query: {
+            date: '2023-05-01',
+            country: 'US'
+          }
+        }
+        const res = {
+          json: function(data) {
+            assert.strictEqual(data.ok, true)
+            assert.strictEqual(data.results, true)
+          }
+        }
+        dates.isBusinessDay = sinon.stub().returns(true)
+        isBusinessDay(req, res)
+        sinon.assert.calledWith(dates.isBusinessDay, '2023-05-01', 'US')
+      })
+  
+      it('returns false for a weekend day', () => {
+        const req = {
+          query: {
+            date: '2023-04-29',
+            country: 'US'
+          }
+        }
+        const res = {
+          json: function(data) {
+            assert.strictEqual(data.ok, true)
+            assert.strictEqual(data.results, false)
+          }
+        }
+        dates.isBusinessDay = sinon.stub().returns(false)
+        isBusinessDay(req, res)
+        sinon.assert.calledWith(dates.isBusinessDay, '2023-04-29', 'US')
+      })
+  
+      it('returns false for a holiday', () => {
+        const req = {
+          query: {
+            date: '2023-07-04',
+            country: 'US'
+          }
+        }
+        const res = {
+          json: function(data) {
+            assert.strictEqual(data.ok, true)
+            assert.strictEqual(data.results, false)
+          }
+        }
+        dates.isBusinessDay = sinon.stub().returns(false)
+        isBusinessDay(req, res)
+        sinon.assert.calledWith(dates.isBusinessDay, '2023-07-04', 'US')
+      })
+  
+      it('returns an error message for an invalid date', () => {
+        const req = {
+          query: {}
+        }
+        const res = {
+          json: function(data) {
+            assert.strictEqual(data.ok, false)
+            assert.strictEqual(data.errorMessage, 'A valid date is required')
+          }
+        }
+        isBusinessDay(req, res)
+      })
+    })
+  
+    describe('getSettlementDate', () => {
+      it('returns the correct settlement date for a delay of 1 business day', () => {
+        const req = {
+          query: {
+            initialDate: '2023-04-27',
+            delay: 1,
+            country: 'US'
+          }
+        }
+        const res = {
+          json: function(data) {
+            assert.strictEqual(data.ok, true)
+            assert.strictEqual(data.initialQuery.initialDate, '2023-04-27')
+            assert.strictEqual(data.initialQuery.delay, '1')
+            assert.strictEqual(data.initialQuery.country, 'US')
+            assert.strictEqual(data.results.businessDate, '2023-04-28T00:00:00.000Z')
+            assert.strictEqual(data.results.holidayDays, 0)
+            assert.strictEqual(data.results.totalDays, 1)
+            assert.strictEqual(data.results.weekendDays, 0)
+          }
+        }
+        dates.getTotalDelay = sinon.stub().returns({totalDays: 1, holidayDays: 0, weekendDays: 0})
+        getSettlementDate(req, res)
+        sinon.assert.calledWith(dates.getTotalDelay, sinon.match.instanceOf(DateTime).and(sinon.match.has('year', 2023).and(sinon.match.has('month', 4).and(sinon.match.has('day', 27)))), 1, 'US')
+      });
